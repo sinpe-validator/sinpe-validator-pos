@@ -1,0 +1,237 @@
+/* App styles aquí si se necesitan */.app-shell {
+  min-height: 100svh;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background:
+    radial-gradient(circle at top left, rgba(24, 41, 89, 0.2), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(255, 179, 71, 0.16), transparent 28%),
+    linear-gradient(180deg, #f7f8fb 0%, #eef2f7 100%);
+}
+
+.topbar,
+.hero-card,
+.stats-grid,
+.table-card {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+}
+
+.topbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 8px 4px 0;
+}
+
+.eyebrow,
+.hero-label {
+  margin: 0 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.72rem;
+  color: #5a6475;
+}
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.nav-item,
+.primary-action {
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.nav-item {
+  padding: 12px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--text-h);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.nav-item:hover,
+.nav-item:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.12);
+}
+
+.nav-item.active {
+  color: #fff;
+  background: linear-gradient(135deg, #0f172a, #2f3f68);
+}
+
+.hero-card,
+.table-card,
+.stat-card {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+}
+
+.hero-card {
+  border-radius: 28px;
+  padding: 28px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.hero-card h2 {
+  max-width: 28rem;
+  margin-bottom: 12px;
+}
+
+.hero-copy {
+  max-width: 44rem;
+  color: var(--text);
+}
+
+.primary-action {
+  padding: 16px 22px;
+  border-radius: 16px;
+  color: #fff;
+  background: linear-gradient(135deg, #1d4ed8, #0f766e);
+  box-shadow: 0 18px 30px rgba(29, 78, 216, 0.24);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  white-space: nowrap;
+}
+
+.primary-action:hover,
+.primary-action:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 22px 36px rgba(29, 78, 216, 0.3);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.stat-card {
+  border-radius: 22px;
+  padding: 20px 22px;
+}
+
+.stat-card span,
+.section-heading .status-pill,
+.empty-state span {
+  color: var(--text);
+}
+
+.stat-card strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 1.8rem;
+  color: var(--text-h);
+}
+
+.table-card {
+  border-radius: 28px;
+  padding: 28px;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.12);
+  color: #0f766e;
+  font-weight: 600;
+}
+
+.status-pill.muted {
+  background: rgba(30, 41, 59, 0.08);
+  color: #334155;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 620px;
+}
+
+th,
+td {
+  padding: 16px 14px;
+  text-align: left;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+th {
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #5a6475;
+}
+
+tbody tr:hover {
+  background: rgba(15, 23, 42, 0.02);
+}
+
+.mono {
+  font-family: var(--mono);
+  font-weight: 700;
+}
+
+.empty-state {
+  padding: 34px 18px 10px;
+  text-align: center;
+  color: var(--text-h);
+}
+
+.empty-state p {
+  margin-bottom: 8px;
+  font-size: 1.05rem;
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    padding: 18px;
+  }
+
+  .topbar,
+  .hero-card,
+  .section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .nav {
+    justify-content: flex-start;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
