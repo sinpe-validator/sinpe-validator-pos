@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
-import { createOrder, getOrders } from '../services/api'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import Swal from 'sweetalert2'
+import { createOrder, getOrders, getOrderById } from '../services/api'
 
 function formatCurrency(amount) {
   return new Intl.NumberFormat('es-CR', {
@@ -31,6 +32,10 @@ function normalizeStatus(status, expiresAt) {
   }
 
   const normalized = String(status ?? '').toLowerCase()
+
+  if (normalized === 'paid' || normalized === 'pagado') {
+    return 'paid'
+  }
 
   if (normalized === 'pending' || normalized === 'pendiente') {
     return 'pending'
@@ -67,6 +72,9 @@ function mapOrderRequest(amount, description) {
   }
 }
 
+// Intervalo de polling en milisegundos
+const POLLING_INTERVAL_MS = 5000
+
 export default function Orders() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [amount, setAmount] = useState('')
@@ -75,6 +83,10 @@ export default function Orders() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [refreshTick, setRefreshTick] = useState(0)
+
+  // Guardamos los IDs que estaban en "pending" en el último poll,
+  // para detectar cuáles cambiaron a "paid"
+  const pendingIdsRef = useRef(new Set())
 
   const normalizedOrders = useMemo(
     () =>
@@ -102,6 +114,7 @@ export default function Orders() {
 
   const totalAmount = useMemo(() => orders.reduce((sum, order) => sum + order.amountValue, 0), [orders])
 
+  // ─── Ticker de 1 segundo para expiración visual ───────────────────────────
   useEffect(() => {
     const intervalId = window.setInterval(() => {
       setRefreshTick((currentTick) => currentTick + 1)
@@ -110,6 +123,7 @@ export default function Orders() {
     return () => window.clearInterval(intervalId)
   }, [])
 
+  // ─── Carga inicial de órdenes ─────────────────────────────────────────────
   useEffect(() => {
     let isActive = true
 
@@ -120,29 +134,64 @@ export default function Orders() {
       try {
         const response = await getOrders()
 
-        if (!isActive) {
-          return
-        }
+        if (!isActive) return
 
-        setOrders(Array.isArray(response) ? response.map(mapOrderDto) : [])
-      } catch (loadError) {
-        if (!isActive) {
-          return
-        }
+        const mapped = Array.isArray(response) ? response.map(mapOrderDto) : []
+        setOrders(mapped)
 
+        // Inicializamos el set de pendientes con los IDs actuales
+        pendingIdsRef.current = new Set(
+          mapped.filter((o) => o.status === 'pending').map((o) => o.id)
+        )
+      } catch {
+        if (!isActive) return
         setError('No se pudieron cargar las órdenes desde el backend.')
       } finally {
-        if (isActive) {
-          setIsLoading(false)
-        }
+        if (isActive) setIsLoading(false)
       }
     }
 
     loadOrders()
 
-    return () => {
-      isActive = false
-    }
+    return () => { isActive = false }
+  }, [])
+
+  // ─── Polling: detectar órdenes que pasaron de pending → paid ─────────────
+  useEffect(() => {
+    const intervalId = window.setInterval(async () => {
+      // Si no hay pendientes, no hacemos nada
+      if (pendingIdsRef.current.size === 0) return
+
+      try {
+        for (const id of pendingIdsRef.current) {
+          const order = mapOrderDto(await getOrderById(id))
+
+          if (order.status === 'paid') {
+            pendingIdsRef.current.delete(id)
+
+            setOrders((current) =>
+              current.map((o) => (o.id === id ? order : o))
+            )
+
+            await Swal.fire({
+              icon: 'success',
+              title: '¡Pago recibido!',
+              html: `
+                <p>La orden <strong>#${order.reference}</strong> fue pagada exitosamente.</p>
+                <p>Monto: <strong>${formatCurrency(order.amountValue)}</strong></p>
+              `,
+              confirmButtonText: 'Aceptar',
+              confirmButtonColor: '#4caf50',
+            })
+          }
+        }
+      } catch {
+        // Silenciamos errores de red en el polling para no molestar al usuario
+        console.warn('Error en el polling de órdenes')
+      }
+    }, POLLING_INTERVAL_MS)
+
+    return () => window.clearInterval(intervalId)
   }, [])
 
   useEffect(() => {
@@ -152,10 +201,7 @@ export default function Orders() {
   }, [activeOrder])
 
   const openGenerator = () => {
-    if (activeOrder) {
-      return
-    }
-
+    if (activeOrder) return
     setAmount('')
     setDescription('')
     setIsFormOpen(true)
@@ -166,9 +212,7 @@ export default function Orders() {
 
     const parsedAmount = Number(amount)
 
-    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-      return
-    }
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) return
 
     async function submitOrder() {
       setError('')
@@ -178,10 +222,14 @@ export default function Orders() {
         const createdOrder = mapOrderDto(response)
 
         setOrders((currentOrders) => [createdOrder, ...currentOrders])
+
+        // Registramos la nueva orden como pendiente en el ref
+        pendingIdsRef.current.add(createdOrder.id)
+
         setAmount('')
         setDescription('')
         setIsFormOpen(false)
-      } catch (submitError) {
+      } catch {
         setError('No se pudo crear la orden en el backend.')
       }
     }

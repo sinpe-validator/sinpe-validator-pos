@@ -16,5 +16,9 @@ export async function getOrders() {
   const { data } = await api.get('/orders/')
   return data
 }
+export async function getOrderById(id) {
+  const { data } = await api.get(`/orders/${id}`)
+  return data
+}
 
 export default api
