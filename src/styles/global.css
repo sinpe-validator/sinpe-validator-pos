@@ -398,4 +398,94 @@ p {
   .orders-table {
     min-width: 620px;
   }
+  .history-page {
+  display: grid;
+  gap: var(--spacing-2xl);
+}
+ 
+.filter-panel {
+  background: var(--color-bg-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  box-shadow: 0 10px 30px rgba(44, 44, 42, 0.06);
+  padding: var(--spacing-xl);
+  display: grid;
+  gap: var(--spacing-xl);
+}
+ 
+.filter-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--spacing-xl);
+  align-items: end;
+}
+ 
+.filter-group {
+  display: grid;
+  gap: var(--spacing-md);
+}
+ 
+.filter-group-label {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-secondary);
+  margin-bottom: 0;
+}
+ 
+.filter-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+}
+ 
+.filter-select {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-md) var(--spacing-lg);
+  font: inherit;
+  background: var(--color-bg-white);
+  color: var(--color-text-primary);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235F5E5A' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--spacing-lg) center;
+  padding-right: 36px;
+}
+ 
+.filter-actions {
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 0;
+}
+ 
+.filter-actions .primary-action {
+  width: 100%;
+  text-align: center;
+}
+ 
+.clear-filters-btn {
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+ 
+@media (max-width: 768px) {
+  .filter-form {
+    grid-template-columns: 1fr;
+  }
+ 
+  .filter-row {
+    grid-template-columns: 1fr;
+  }
+}
 }
