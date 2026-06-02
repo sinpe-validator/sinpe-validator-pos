@@ -341,6 +341,16 @@ p {
   color: var(--color-danger);
 }
 
+.status-pill--paid {
+  background: rgba(34, 139, 75, 0.12);
+  color: #228b4b;
+}
+
+.status-pill--underreview {
+  background: rgba(180, 120, 0, 0.12);
+  color: #b47800;
+}
+
 .empty-state {
   padding: var(--spacing-2xl);
   text-align: center;
