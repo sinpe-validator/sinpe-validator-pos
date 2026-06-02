@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Swal from 'sweetalert2'
-import { createOrder, getOrders, getOrderById } from '../services/api'
+import { createOrder, getOrders, getOrderById, expireOrder } from '../services/api'
 
 function formatCurrency(amount) {
   return new Intl.NumberFormat('es-CR', {
@@ -27,23 +27,15 @@ function formatDateTime(date) {
 }
 
 function normalizeStatus(status, expiresAt) {
-  if (expiresAt instanceof Date && expiresAt.getTime() <= Date.now()) {
-    return 'expired'
-  }
+  const normalized = String(status ?? '').toLowerCase().trim()
 
-  const normalized = String(status ?? '').toLowerCase()
+  // Valores numéricos que envía el backend (1=Pending, 2=Paid, 3=Expired, 4=UnderReview)
+  if (normalized === '2' || normalized === 'paid' || normalized === 'pagado') return 'paid'
+  if (normalized === '3' || normalized === 'expired' || normalized === 'expirado') return 'expired'
+  if (normalized === '4' || normalized === 'underreview' || normalized === 'under_review' || normalized === 'en revisión') return 'underreview'
 
-  if (normalized === 'paid' || normalized === 'pagado') {
-    return 'paid'
-  }
-
-  if (normalized === 'pending' || normalized === 'pendiente') {
-    return 'pending'
-  }
-
-  if (normalized === 'expired' || normalized === 'expirado') {
-    return 'expired'
-  }
+  // Solo las órdenes pendientes pueden expirar por tiempo
+  if (expiresAt instanceof Date && expiresAt.getTime() <= Date.now()) return 'expired'
 
   return 'pending'
 }
@@ -52,7 +44,7 @@ function mapOrderDto(order) {
   const createdAtValue = order.createdAt ?? order.CreatedAt
   const expiresAtValue = order.expiresAt ?? order.ExpiresAt
   const createdAt = createdAtValue ? new Date(createdAtValue) : new Date()
-  const expiresAt = expiresAtValue ? new Date(expiresAtValue) : new Date(createdAt.getTime() + 60 * 1000)
+  const expiresAt = expiresAtValue ? new Date(expiresAtValue) : new Date(createdAt.getTime() + 5 * 60 * 1000)
 
   return {
     id: order.idOrder ?? order.IdOrder ?? order.orderCode ?? order.OrderCode ?? crypto.randomUUID(),
@@ -63,6 +55,21 @@ function mapOrderDto(order) {
     createdAt,
     expiresAt,
   }
+}
+
+const STATUS_LABELS = {
+  pending: 'pendiente',
+  paid: 'pagado',
+  expired: 'expirado',
+  underreview: 'en revisión',
+}
+
+function StatusPill({ status }) {
+  return (
+    <span className={`status-pill status-pill--${status}`}>
+      {STATUS_LABELS[status] ?? status}
+    </span>
+  )
 }
 
 function mapOrderRequest(amount, description) {
@@ -87,6 +94,7 @@ export default function Orders() {
   // Guardamos los IDs que estaban en "pending" en el último poll,
   // para detectar cuáles cambiaron a "paid"
   const pendingIdsRef = useRef(new Set())
+  const prevStatusMapRef = useRef({})
 
   const normalizedOrders = useMemo(
     () =>
@@ -105,8 +113,8 @@ export default function Orders() {
     [normalizedOrders],
   )
 
-  const expiredOrders = useMemo(
-    () => normalizedOrders.filter((order) => order.normalizedStatus === 'expired'),
+  const completedOrders = useMemo(
+    () => normalizedOrders.filter((order) => order.normalizedStatus !== 'pending'),
     [normalizedOrders],
   )
 
@@ -122,6 +130,41 @@ export default function Orders() {
 
     return () => window.clearInterval(intervalId)
   }, [])
+
+  // ─── Detectar órdenes que pasan de pending → expired por tiempo ──────────
+  useEffect(() => {
+    const nowExpired = normalizedOrders.filter((order) => {
+      const prev = prevStatusMapRef.current[order.id]
+      return prev === 'pending' && order.normalizedStatus === 'expired'
+    })
+
+    normalizedOrders.forEach((order) => {
+      prevStatusMapRef.current[order.id] = order.normalizedStatus
+    })
+
+    if (nowExpired.length === 0) return
+
+    nowExpired.forEach((order) => pendingIdsRef.current.delete(order.id))
+
+    nowExpired.forEach(async (order) => {
+      try {
+        await expireOrder(order.id)
+      } catch {
+        console.warn(`No se pudo notificar expiración al backend para la orden ${order.id}`)
+      }
+
+      Swal.fire({
+        icon: 'warning',
+        title: 'Orden expirada',
+        html: `
+          <p>La orden <strong>#${order.reference}</strong> expiró sin recibir pago.</p>
+          <p>Monto: <strong>${formatCurrency(order.amountValue)}</strong></p>
+        `,
+        confirmButtonText: 'Aceptar',
+        confirmButtonColor: '#ef4444',
+      })
+    })
+  }, [normalizedOrders])
 
   // ─── Carga inicial de órdenes ─────────────────────────────────────────────
   useEffect(() => {
@@ -183,6 +226,12 @@ export default function Orders() {
               confirmButtonText: 'Aceptar',
               confirmButtonColor: '#4caf50',
             })
+          } else if (order.status === 'expired') {
+            pendingIdsRef.current.delete(id)
+
+            setOrders((current) =>
+              current.map((o) => (o.id === id ? order : o))
+            )
           }
         }
       } catch {
@@ -357,7 +406,7 @@ export default function Orders() {
           <div className="empty-state">
             <p>Cargando órdenes...</p>
           </div>
-        ) : expiredOrders.length > 0 ? (
+        ) : completedOrders.length > 0 ? (
           <div className="orders-table-wrap">
             <table className="orders-table">
               <thead>
@@ -371,11 +420,11 @@ export default function Orders() {
                 </tr>
               </thead>
               <tbody>
-                {expiredOrders.map((order) => (
+                {completedOrders.map((order) => (
                   <tr key={order.id}>
                     <td>{formatCurrency(order.amountValue)}</td>
                     <td>
-                      <span className="status-pill status-pill--expired">expirado</span>
+                      <StatusPill status={order.normalizedStatus} />
                     </td>
                     <td className="mono">{order.reference}</td>
                     <td>{order.description || 'Sin descripción'}</td>
@@ -398,7 +447,7 @@ export default function Orders() {
           </div>
         ) : (
           <div className="empty-state">
-            <p>Aún no hay órdenes expiradas.</p>
+            <p>Aún no hay órdenes completadas o expiradas.</p>
           </div>
         )}
       </section>

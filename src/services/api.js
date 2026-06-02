@@ -21,4 +21,9 @@ export async function getOrderById(id) {
   return data
 }
 
+export async function expireOrder(id) {
+  const { data } = await api.patch(`/orders/${id}/expire`)
+  return data
+}
+
 export default api
