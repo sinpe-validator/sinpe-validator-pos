@@ -43,4 +43,16 @@ export async function expireOrder(id) {
   return data;
 }
 
+export async function getUnmatchedPayments() {
+  const { data } = await api.get("/payments/unmatched");
+  return data;
+}
+
+export async function matchPaymentToOrder(idOrderPayment, idOrder) {
+  const { data } = await api.post(`/payments/${idOrderPayment}/match`, {
+    idOrder,
+  });
+  return data;
+}
+
 export default api;

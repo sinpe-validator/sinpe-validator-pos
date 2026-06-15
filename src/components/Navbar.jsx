@@ -11,6 +11,7 @@ export default function Navbar() {
         <ul className="navbar-menu">
           <li><Link to="/" className="nav-link">Órdenes de compra</Link></li>
           <li><Link to="/revision" className="nav-link">Revisión manual</Link></li>
+          <li><Link to="/pagos-sin-orden" className="nav-link">Pagos sin orden</Link></li>
           <li><Link to="/fraude" className="nav-link">Intentos de fraude</Link></li>
           <li><Link to="/historial" className="nav-link">Historial</Link></li>
         </ul>

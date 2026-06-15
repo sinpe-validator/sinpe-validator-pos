@@ -351,6 +351,11 @@ p {
   color: #b47800;
 }
 
+.status-pill--unmatched {
+  background: rgba(107, 114, 128, 0.14);
+  color: #4b5563;
+}
+
 .empty-state {
   padding: var(--spacing-2xl);
   text-align: center;
