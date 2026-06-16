@@ -55,4 +55,9 @@ export async function matchPaymentToOrder(idOrderPayment, idOrder) {
   return data;
 }
 
+export async function getFraudAttempts() {
+  const { data } = await api.get("/fraud/");
+  return data;
+}
+
 export default api;

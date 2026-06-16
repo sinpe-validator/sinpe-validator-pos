@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Swal from 'sweetalert2'
 import { getUnmatchedPayments, getOrders, matchPaymentToOrder } from '../services/api'
 
@@ -57,11 +57,16 @@ function statusLabel(order) {
   return order.status ?? order.Status ?? ''
 }
 
+const POLLING_INTERVAL_MS = 5000
+
 export default function UnmatchedPayments() {
   const [payments, setPayments] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [processingId, setProcessingId] = useState(null)
+
+  // IDs ya conocidos para detectar pagos nuevos en el polling
+  const knownIdsRef = useRef(null)
 
   async function loadUnmatchedPayments() {
     setIsLoading(true)
@@ -69,7 +74,13 @@ export default function UnmatchedPayments() {
 
     try {
       const data = await getUnmatchedPayments()
-      setPayments(Array.isArray(data) ? data : [])
+      const list = Array.isArray(data) ? data : []
+      setPayments(list)
+
+      // Inicializamos los IDs conocidos en la primera carga
+      if (knownIdsRef.current === null) {
+        knownIdsRef.current = new Set(list.map((p) => p.idOrderPayment))
+      }
     } catch {
       setError('No se pudieron cargar los pagos sin orden desde el backend.')
     } finally {
@@ -179,6 +190,50 @@ export default function UnmatchedPayments() {
 
   useEffect(() => {
     loadUnmatchedPayments()
+  }, [])
+
+  // ─── Polling: notificar cuando llegan nuevos pagos sin orden ─────────────
+  useEffect(() => {
+    const intervalId = window.setInterval(async () => {
+      // Esperamos a que la carga inicial haya inicializado los IDs conocidos
+      if (knownIdsRef.current === null) return
+
+      try {
+        const data = await getUnmatchedPayments()
+        const list = Array.isArray(data) ? data : []
+
+        const newPayments = list.filter(
+          (p) => !knownIdsRef.current.has(p.idOrderPayment)
+        )
+
+        if (newPayments.length === 0) return
+
+        // Actualizamos IDs conocidos y la lista en pantalla
+        newPayments.forEach((p) => knownIdsRef.current.add(p.idOrderPayment))
+        setPayments(list)
+
+        // Notificamos uno por uno
+        for (const payment of newPayments) {
+          await Swal.fire({
+            icon: 'warning',
+            title: 'Pago sin orden recibido',
+            html: `
+              <p>Se recibió un pago que no corresponde a ninguna orden.</p>
+              <p>Monto: <strong>${formatCurrency(payment.amount)}</strong></p>
+              <p>Remitente: <strong>${payment.senderName || 'Desconocido'}</strong></p>
+              <p>Referencia: <strong>${payment.sinpeReference || 'Sin referencia'}</strong></p>
+            `,
+            confirmButtonText: 'Ver pagos',
+            confirmButtonColor: '#f59e0b',
+          })
+        }
+      } catch {
+        // Silenciamos errores de red en el polling
+        console.warn('Error en el polling de pagos sin orden')
+      }
+    }, POLLING_INTERVAL_MS)
+
+    return () => window.clearInterval(intervalId)
   }, [])
 
   return (
