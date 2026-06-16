@@ -105,20 +105,12 @@ export default function Orders() {
     [orders, refreshTick],
   )
 
-  const activeOrder = useMemo(
-    () =>
-      normalizedOrders
-        .filter((order) => order.normalizedStatus === 'pending')
-        .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())[0] ?? null,
+  const pendingOrders = useMemo(
+    () => normalizedOrders.filter((order) => order.normalizedStatus === 'pending'),
     [normalizedOrders],
   )
 
-  const completedOrders = useMemo(
-    () => normalizedOrders.filter((order) => order.normalizedStatus !== 'pending'),
-    [normalizedOrders],
-  )
-
-  const pendingCount = useMemo(() => normalizedOrders.filter((order) => order.normalizedStatus === 'pending').length, [normalizedOrders])
+  const pendingCount = useMemo(() => pendingOrders.length, [pendingOrders])
 
   const totalAmount = useMemo(() => orders.reduce((sum, order) => sum + order.amountValue, 0), [orders])
 
@@ -243,14 +235,7 @@ export default function Orders() {
     return () => window.clearInterval(intervalId)
   }, [])
 
-  useEffect(() => {
-    if (activeOrder) {
-      setIsFormOpen(false)
-    }
-  }, [activeOrder])
-
   const openGenerator = () => {
-    if (activeOrder) return
     setAmount('')
     setDescription('')
     setIsFormOpen(true)
@@ -317,44 +302,12 @@ export default function Orders() {
             <h2>Generador de orden de compra</h2>
           </div>
 
-          <button type="button" className="primary-action" onClick={openGenerator} disabled={Boolean(activeOrder)}>
+          <button type="button" className="primary-action" onClick={openGenerator}>
             Generar orden de compra
           </button>
         </div>
 
-        {activeOrder ? (
-          <div className="active-order-card" aria-live="polite">
-            <div className="active-order-card__code">
-              <p className="section-label">Código de orden para SINPE</p>
-              <strong className="active-order-code mono">{activeOrder.reference}</strong>
-              <span className="active-order-status status-pill status-pill--pending">pendiente</span>
-            </div>
-
-            <div className="active-order-card__meta">
-              <article className="active-order-mini-card">
-                <span>Monto</span>
-                <strong>{formatCurrency(activeOrder.amountValue)}</strong>
-              </article>
-
-              <article className="active-order-mini-card active-order-mini-card--wide">
-                <span>Descripción</span>
-                <strong>{activeOrder.description || 'Sin descripción'}</strong>
-              </article>
-
-              <article className="active-order-mini-card">
-                <span>Creada</span>
-                <strong>{formatDateTime(activeOrder.createdAt)}</strong>
-                <small>{formatTime(activeOrder.createdAt)}</small>
-              </article>
-
-              <article className="active-order-mini-card">
-                <span>Expira</span>
-                <strong>{formatDateTime(activeOrder.expiresAt)}</strong>
-                <small>{formatTime(activeOrder.expiresAt)}</small>
-              </article>
-            </div>
-          </div>
-        ) : isFormOpen ? (
+        {isFormOpen ? (
           <form className="order-form" onSubmit={handleSubmit}>
             <div className="field">
               <label htmlFor="amount">Monto</label>
@@ -384,7 +337,12 @@ export default function Orders() {
               Generar orden
             </button>
           </form>
-        ) : null}
+        ) : (
+          <div className="empty-state">
+            <p>Las órdenes pendientes se muestran abajo mientras esperan pago o expiración.</p>
+            <span>Usa el botón superior para abrir el formulario y crear una nueva orden.</span>
+          </div>
+        )}
       </section>
 
       {error ? (
@@ -397,8 +355,8 @@ export default function Orders() {
       <section className="orders-section">
         <div className="section-heading">
           <div>
-            <p className="section-label">Órdenes completadas y expiradas</p>
-            <h2>Tabla de órdenes</h2>
+            <p className="section-label">Órdenes activas</p>
+            <h2>Tabla de órdenes pendientes</h2>
           </div>
         </div>
 
@@ -406,7 +364,7 @@ export default function Orders() {
           <div className="empty-state">
             <p>Cargando órdenes...</p>
           </div>
-        ) : completedOrders.length > 0 ? (
+        ) : pendingOrders.length > 0 ? (
           <div className="orders-table-wrap">
             <table className="orders-table">
               <thead>
@@ -420,7 +378,7 @@ export default function Orders() {
                 </tr>
               </thead>
               <tbody>
-                {completedOrders.map((order) => (
+                {pendingOrders.map((order) => (
                   <tr key={order.id}>
                     <td>{formatCurrency(order.amountValue)}</td>
                     <td>
@@ -447,10 +405,11 @@ export default function Orders() {
           </div>
         ) : (
           <div className="empty-state">
-            <p>Aún no hay órdenes completadas o expiradas.</p>
+            <p>Aún no hay órdenes pendientes.</p>
+            <span>Creá una nueva orden para verla aquí mientras espera el pago.</span>
           </div>
         )}
       </section>
     </div>
   )
-}
+}    
