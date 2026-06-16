@@ -235,3 +235,126 @@ tbody tr:hover {
     grid-template-columns: 1fr;
   }
 }
+.table-filter-row th {
+  background: #f8fafc;
+  padding: 0.75rem;
+  vertical-align: top;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table-filter-title {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(30, 64, 175, 0.08);
+  color: var(--color-primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.table-filter-stack {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.table-filter-row input,
+.table-filter-row select {
+  width: 100%;
+  min-height: 2.35rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.7rem;
+  padding: 0.45rem 0.65rem;
+  background: #ffffff;
+  color: var(--color-text);
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.table-filter-row input:focus,
+.table-filter-row select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.12);
+}
+
+.table-filter-muted {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.table-filter-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.table-action-button {
+  width: 100%;
+  min-height: 2.35rem;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+
+.secondary-action {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--color-text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.secondary-action:hover {
+  background: #f1f5f9;
+}
+
+.text-muted {
+  color: var(--color-text-secondary);
+}
+
+.orders-table td .empty-state {
+  margin: 1rem 0;
+}
+
+.table-filter-empty {
+  background: #f8fafc;
+}
+
+.table-filter-row--compact th {
+  padding: 0.7rem 0.8rem;
+  vertical-align: middle;
+}
+
+.table-filter-row--compact input,
+.table-filter-row--compact select {
+  width: 100%;
+  min-height: 2.2rem;
+}
+
+.table-filter-date-actions {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.table-filter-date-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.table-filter-actions-inline {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.table-filter-actions-inline .table-action-button {
+  width: 100%;
+  min-height: 2.2rem;
+}
+
+.text-muted {
+  color: var(--color-text-secondary);
+}

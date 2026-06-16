@@ -11,6 +11,7 @@ function formatCurrency(amount) {
 
 function formatDateTime(dateInput) {
   const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
+
   return new Intl.DateTimeFormat("es-CR", {
     year: "numeric",
     month: "2-digit",
@@ -24,10 +25,14 @@ function normalizeStatus(status) {
   const s = String(status ?? "")
     .toLowerCase()
     .trim();
+
   if (s === "2" || s === "paid") return "paid";
   if (s === "3" || s === "expired") return "expired";
-  if (s === "4" || s === "underreview" || s === "under_review")
+
+  if (s === "4" || s === "underreview" || s === "under_review") {
     return "underreview";
+  }
+
   return "pending";
 }
 
@@ -39,7 +44,7 @@ const STATUS_LABELS = {
 };
 
 const STATUS_OPTIONS = [
-  { value: "", label: "Todos los estados" },
+  { value: "", label: "Todos" },
   { value: "Pending", label: "Pendiente" },
   { value: "Paid", label: "Pagado" },
   { value: "Expired", label: "Expirado" },
@@ -48,6 +53,7 @@ const STATUS_OPTIONS = [
 
 function StatusPill({ status }) {
   const normalized = normalizeStatus(status);
+
   return (
     <span className={`status-pill status-pill--${normalized}`}>
       {STATUS_LABELS[normalized] ?? status}
@@ -68,16 +74,17 @@ export default function History() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Filtros que el usuario está editando
   const [filters, setFilters] = useState(EMPTY_FILTERS);
-  // Filtros aplicados (los que se usaron en la última búsqueda)
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_FILTERS);
 
-  const hasActiveFilters = Object.values(appliedFilters).some((v) => v !== "");
+  const hasActiveFilters = Object.values(appliedFilters).some(
+    (value) => value !== "",
+  );
 
-  async function fetchOrders(params) {
+  async function fetchOrders(params = {}) {
     setIsLoading(true);
     setError("");
+
     try {
       const data = await getOrdersFiltered(params);
       setOrders(Array.isArray(data) ? data : []);
@@ -89,13 +96,15 @@ export default function History() {
     }
   }
 
-  // Carga inicial sin filtros
   useEffect(() => {
     fetchOrders({});
   }, []);
 
   function handleFilterChange(field, value) {
-    setFilters((prev) => ({ ...prev, [field]: value }));
+    setFilters((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
   }
 
   function handleSearch(event) {
@@ -110,17 +119,16 @@ export default function History() {
     fetchOrders({});
   }
 
-  const totalAmount = orders.reduce(
-    (sum, o) => sum + Number(o.amount ?? o.Amount ?? 0),
-    0,
-  );
-  const paidCount = orders.filter(
-    (o) => normalizeStatus(o.status ?? o.Status) === "paid",
-  ).length;
+  const totalAmount = orders.reduce((sum, order) => {
+    return sum + Number(order.amount ?? order.Amount ?? 0);
+  }, 0);
+
+  const paidCount = orders.filter((order) => {
+    return normalizeStatus(order.status ?? order.Status) === "paid";
+  }).length;
 
   return (
     <div className="page-container history-page">
-      {/* Encabezado */}
       <div className="page-header">
         <div>
           <p className="section-label">Pagos SINPE</p>
@@ -133,10 +141,12 @@ export default function History() {
             <span>Total órdenes</span>
             <strong>{orders.length}</strong>
           </article>
+
           <article className="summary-card">
             <span>Pagadas</span>
             <strong>{paidCount}</strong>
           </article>
+
           <article className="summary-card">
             <span>Monto total</span>
             <strong>{formatCurrency(totalAmount)}</strong>
@@ -144,115 +154,6 @@ export default function History() {
         </div>
       </div>
 
-      {/* Panel de filtros */}
-      <section className="filter-panel">
-        <div className="section-heading">
-          <div>
-            <p className="section-label">Búsqueda</p>
-            <h2>Filtros</h2>
-          </div>
-          {hasActiveFilters && (
-            <button
-              type="button"
-              className="primary-action"
-              onClick={handleClear}
-            >
-              Limpiar filtros
-            </button>
-          )}
-        </div>
-
-        <form className="filter-form" onSubmit={handleSearch}>
-          <div className="filter-group">
-            <p className="filter-group-label">Fecha de creación</p>
-            <div className="filter-row">
-              <div className="field">
-                <label htmlFor="fechaDesde">Desde</label>
-                <input
-                  id="fechaDesde"
-                  type="date"
-                  value={filters.fechaDesde}
-                  onChange={(e) =>
-                    handleFilterChange("fechaDesde", e.target.value)
-                  }
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="fechaHasta">Hasta</label>
-                <input
-                  id="fechaHasta"
-                  type="date"
-                  value={filters.fechaHasta}
-                  onChange={(e) =>
-                    handleFilterChange("fechaHasta", e.target.value)
-                  }
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="filter-group">
-            <p className="filter-group-label">Estado</p>
-            <div className="field">
-              <label htmlFor="estado">Estado de la orden</label>
-              <select
-                id="estado"
-                value={filters.estado}
-                onChange={(e) => handleFilterChange("estado", e.target.value)}
-                className="filter-select"
-              >
-                {STATUS_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="filter-group">
-            <p className="filter-group-label">Monto (₡)</p>
-            <div className="filter-row">
-              <div className="field">
-                <label htmlFor="montoMin">Mínimo</label>
-                <input
-                  id="montoMin"
-                  type="number"
-                  min="0"
-                  step="1"
-                  placeholder="0"
-                  value={filters.montoMin}
-                  onChange={(e) =>
-                    handleFilterChange("montoMin", e.target.value)
-                  }
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="montoMax">Máximo</label>
-                <input
-                  id="montoMax"
-                  type="number"
-                  min="0"
-                  step="1"
-                  placeholder="Sin límite"
-                  value={filters.montoMax}
-                  onChange={(e) =>
-                    handleFilterChange("montoMax", e.target.value)
-                  }
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="filter-actions">
-            <button type="submit" className="primary-action">
-              Buscar
-            </button>
-          </div>
-        </form>
-      </section>
-
-      {/* Tabla de resultados */}
       <section className="orders-section">
         <div className="section-heading">
           <div>
@@ -260,30 +161,14 @@ export default function History() {
             <h2>
               {isLoading
                 ? "Cargando..."
-                : `${orders.length} orden${orders.length !== 1 ? "es" : ""} encontrada${orders.length !== 1 ? "s" : ""}`}
+                : `${orders.length} orden${
+                    orders.length !== 1 ? "es" : ""
+                  } encontrada${orders.length !== 1 ? "s" : ""}`}
             </h2>
           </div>
         </div>
 
-        {error ? (
-          <div className="empty-state" role="alert">
-            <p>{error}</p>
-            <span>Verificá la conexión con el servidor.</span>
-          </div>
-        ) : isLoading ? (
-          <div className="empty-state">
-            <p>Cargando historial de pagos...</p>
-          </div>
-        ) : orders.length === 0 ? (
-          <div className="empty-state">
-            <p>No se encontraron órdenes.</p>
-            <span>
-              {hasActiveFilters
-                ? "Intentá con otros filtros."
-                : "Aún no hay órdenes registradas."}
-            </span>
-          </div>
-        ) : (
+        <form onSubmit={handleSearch}>
           <div className="orders-table-wrap">
             <table className="orders-table">
               <thead>
@@ -295,55 +180,179 @@ export default function History() {
                   <th>Creada</th>
                   <th>Expira</th>
                 </tr>
-              </thead>
-              <tbody>
-                {orders.map((order) => {
-                  const id = order.idOrder ?? order.IdOrder;
-                  const code = order.orderCode ?? order.OrderCode ?? "";
-                  const amount = Number(order.amount ?? order.Amount ?? 0);
-                  const status = order.status ?? order.Status ?? "";
-                  const description =
-                    order.description ?? order.Description ?? "";
-                  const createdAt = order.createdAt ?? order.CreatedAt;
-                  const expiresAt = order.expiresAt ?? order.ExpiresAt;
 
-                  return (
-                    <tr key={id}>
-                      <td className="mono">{code}</td>
-                      <td>{formatCurrency(amount)}</td>
-                      <td>
-                        <StatusPill status={status} />
-                      </td>
-                      <td>
-                        {description || (
-                          <span
-                            style={{ color: "var(--color-text-secondary)" }}
-                          >
-                            Sin descripción
-                          </span>
-                        )}
-                      </td>
-                      <td>
-                        <div className="timestamp-cell">
-                          <span>
-                            {createdAt ? formatDateTime(createdAt) : "—"}
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="timestamp-cell">
-                          <span>
-                            {expiresAt ? formatDateTime(expiresAt) : "—"}
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                <tr className="table-filter-row">
+                  <th>
+                    <span className="table-filter-title">Filtros</span>
+                  </th>
+
+                  <th>
+                    <div className="table-filter-stack">
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        placeholder="Mínimo"
+                        value={filters.montoMin}
+                        onChange={(event) =>
+                          handleFilterChange("montoMin", event.target.value)
+                        }
+                      />
+
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        placeholder="Máximo"
+                        value={filters.montoMax}
+                        onChange={(event) =>
+                          handleFilterChange("montoMax", event.target.value)
+                        }
+                      />
+                    </div>
+                  </th>
+
+                  <th>
+                    <select
+                      value={filters.estado}
+                      onChange={(event) =>
+                        handleFilterChange("estado", event.target.value)
+                      }
+                    >
+                      {STATUS_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </th>
+
+                  <th className="table-filter-empty"></th>
+
+                  <th>
+                    <div className="table-filter-stack">
+                      <input
+                        type="date"
+                        value={filters.fechaDesde}
+                        onChange={(event) =>
+                          handleFilterChange("fechaDesde", event.target.value)
+                        }
+                      />
+
+                      <input
+                        type="date"
+                        value={filters.fechaHasta}
+                        onChange={(event) =>
+                          handleFilterChange("fechaHasta", event.target.value)
+                        }
+                      />
+                    </div>
+                  </th>
+
+                  <th>
+                    <div className="table-filter-actions">
+                      <button
+                        type="submit"
+                        className="primary-action table-action-button"
+                      >
+                        Buscar
+                      </button>
+
+                      {hasActiveFilters && (
+                        <button
+                          type="button"
+                          className="secondary-action table-action-button"
+                          onClick={handleClear}
+                        >
+                          Limpiar
+                        </button>
+                      )}
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {error ? (
+                  <tr>
+                    <td colSpan="6">
+                      <div className="empty-state" role="alert">
+                        <p>{error}</p>
+                        <span>Verificá la conexión con el servidor.</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : isLoading ? (
+                  <tr>
+                    <td colSpan="6">
+                      <div className="empty-state">
+                        <p>Cargando historial de pagos...</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : orders.length === 0 ? (
+                  <tr>
+                    <td colSpan="6">
+                      <div className="empty-state">
+                        <p>No se encontraron órdenes.</p>
+                        <span>
+                          {hasActiveFilters
+                            ? "Intentá con otros filtros."
+                            : "Aún no hay órdenes registradas."}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  orders.map((order) => {
+                    const id = order.idOrder ?? order.IdOrder;
+                    const code = order.orderCode ?? order.OrderCode ?? "";
+                    const amount = Number(order.amount ?? order.Amount ?? 0);
+                    const status = order.status ?? order.Status ?? "";
+                    const description =
+                      order.description ?? order.Description ?? "";
+                    const createdAt = order.createdAt ?? order.CreatedAt;
+                    const expiresAt = order.expiresAt ?? order.ExpiresAt;
+
+                    return (
+                      <tr key={id}>
+                        <td className="mono">{code}</td>
+
+                        <td>{formatCurrency(amount)}</td>
+
+                        <td>
+                          <StatusPill status={status} />
+                        </td>
+
+                        <td>
+                          {description || (
+                            <span className="text-muted">Sin descripción</span>
+                          )}
+                        </td>
+
+                        <td>
+                          <div className="timestamp-cell">
+                            <span>
+                              {createdAt ? formatDateTime(createdAt) : "—"}
+                            </span>
+                          </div>
+                        </td>
+
+                        <td>
+                          <div className="timestamp-cell">
+                            <span>
+                              {expiresAt ? formatDateTime(expiresAt) : "—"}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
-        )}
+        </form>
       </section>
     </div>
   );
